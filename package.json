@@ -1,0 +1,17 @@
+{
+  "name": "15.08.23",
+  "version": "1.0.0",
+  "description": "",
+  "main": "expres_1.js",
+  "scripts": {
+    "start": "nodemon expres_1.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "uuid": "^9.0.0"
+  }
+}
