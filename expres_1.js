@@ -1,10 +1,12 @@
 const express = require("express");
-const db = require("./db");
+// const db = require("./db");
 const app = express();
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
+let db = fs.readFileSync('./db.json')
 app.use(express.json());
-
+db = JSON.parse(`${db}`);
+console.log(db);
 let s = {email: "shayarbes@gmail.com",password: "123"};
 app.get("/users", (req, res) => {
   res.send(JSON.stringify(db));
@@ -28,10 +30,10 @@ app.post("/users", (req, res) => {
 
     return res.status(400).json({ error: "Missing required fields" });
   }
-  const newUser = { email, password };
+  const newUser = {id:uuidv4(), email, password };
   db.push(newUser);
 
-  fs.writeFile("db.js", db, (err) => {
+  fs.writeFile("db.json", JSON.stringify(db), (err) => {
     if (err) throw err;
     console.log("The file has been saved!");
   });
