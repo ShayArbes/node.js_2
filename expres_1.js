@@ -1,13 +1,12 @@
 //-------------------------------------------------------
 const express = require("express");
-const fs = require("fs");
+const jsonfile = require('jsonfile');
 const { v4: uuidv4 } = require("uuid");
 const bcrypt = require("bcrypt");
-const validator = require('validator');
+const validator = require("validator");
 const app = express();
-let db = fs.readFileSync("./db.json");
+let db = jsonfile.readFileSync("./db.json")
 app.use(express.json());
-db = JSON.parse(`${db}`);
 //-------------------------------------------------------
 const saltRounds = 10;
 const myPlaintextPassword = "s0//P4$$w0rD";
@@ -22,7 +21,6 @@ app.get("/users", (req, res) => {
 app.get("/users/:id", (req, res) => {
   const userId = parseInt(req.params.id);
   const user = db.find((u) => u.id === userId);
-  console.log(userId);
   if (!user) {
     return res.status(403).json({ error: "User not found" });
   }
@@ -32,42 +30,33 @@ app.get("/users/:id", (req, res) => {
 app.post("/users", (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    console.log(email);
-    console.log(password);
-
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  const isValidEmail = validator.isEmail(email); 
-  const isValidPassword =  validator.isStrongPassword(password, {
-    minLength: 8, 
+  const isValidEmail = validator.isEmail(email);
+  const isValidPassword = validator.isStrongPassword(password, {
+    minLength: 8,
     minLowercase: 1,
     minUppercase: 1,
-    minSymbols: 0
+    minSymbols: 0,
   });
   if (!isValidEmail) {
     return res.status(403).json({ error: "Invalid email" });
   }
-  console.log(isValidPassword);
-  console.log(password);
   if (!isValidPassword) {
     return res.status(403).json({ error: "Invalid password" });
   }
   const newUser = { id: uuidv4(), email, password };
-
   const hash = bcrypt.hashSync(newUser.password, saltRounds);
   newUser.password = hash;
   db.push(newUser);
   saveToFile(db);
-  //return something to the user
   res.status(200).send();
 });
 
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    console.log(email);
-    console.log(password);
     return res.status(400).json({ error: "Missing required fields" });
   }
   const user = db.find((u) => {
@@ -126,9 +115,10 @@ app.delete("/users/:id", (req, res) => {
 });
 
 const saveToFile = (db) => {
-  fs.writeFile("db.json", JSON.stringify(db), (err) => {
+  jsonfile.writeFile("db.json", db, (err) => {
     if (err) throw err;
     console.log("The file has been saved!");
   });
+
 };
 app.listen(3000, () => console.log("Server started on port 3000"));
