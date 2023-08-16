@@ -1,16 +1,14 @@
 //-------------------------------------------------------
 const express = require("express");
-// const db = require("./db");
-const app = express();
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
+const bcrypt = require("bcrypt");
+const validator = require('validator');
+const app = express();
 let db = fs.readFileSync("./db.json");
 app.use(express.json());
 db = JSON.parse(`${db}`);
 //-------------------------------------------------------
-let s = { email: "shayarbes@gmail.com", password: "123" };
-//-------------------------------------------------------
-const bcrypt = require("bcrypt");
 const saltRounds = 10;
 const myPlaintextPassword = "s0//P4$$w0rD";
 const someOtherPlaintextPassword = "not_bacon";
@@ -18,7 +16,7 @@ const someOtherPlaintextPassword = "not_bacon";
 //-------------------------------------------------------
 
 app.get("/users", (req, res) => {
-  res.send(JSON.stringify(db));
+  res.json(db);
 });
 
 app.get("/users/:id", (req, res) => {
@@ -26,7 +24,7 @@ app.get("/users/:id", (req, res) => {
   const user = db.find((u) => u.id === userId);
   console.log(userId);
   if (!user) {
-    return res.status(404).json({ error: "User not found" });
+    return res.status(403).json({ error: "User not found" });
   }
   res.send(JSON.stringify(user));
 });
@@ -39,12 +37,30 @@ app.post("/users", (req, res) => {
 
     return res.status(400).json({ error: "Missing required fields" });
   }
+
+  const isValidEmail = validator.isEmail(email); 
+  const isValidPassword =  validator.isStrongPassword(password, {
+    minLength: 8, 
+    minLowercase: 1,
+    minUppercase: 1,
+    minSymbols: 0
+  });
+  if (!isValidEmail) {
+    return res.status(403).json({ error: "Invalid email" });
+  }
+  console.log(isValidPassword);
+  console.log(password);
+  if (!isValidPassword) {
+    return res.status(403).json({ error: "Invalid password" });
+  }
   const newUser = { id: uuidv4(), email, password };
 
   const hash = bcrypt.hashSync(newUser.password, saltRounds);
   newUser.password = hash;
   db.push(newUser);
   saveToFile(db);
+  //return something to the user
+  res.status(200).send();
 });
 
 app.post("/login", (req, res) => {
@@ -58,27 +74,33 @@ app.post("/login", (req, res) => {
     return u.email === email && bcrypt.compareSync(password, u.password);
   });
   if (user) {
-    res.send(`Hello ${email}`);
+    res.status(200).json(`Hello ${email}`);
   } else {
-    res.send("User does not exist!");
+    res.status(403).json({ error: "User does not exist!" });
   }
 });
 
 app.put("/users/:id", (req, res) => {
   const userId = parseInt(req.params.id);
   const index = db.findIndex((user) => user.id === userId);
-  console.log(userId);
 
-  console.log(index);
   if (index === undefined) {
     return res.status(404).json({ error: "User not found" });
   }
   const { email, password } = req.body;
-  console.log(email);
-  console.log(password);
-  db[index].email = email ? email : db[index].email;
 
+  db[index].email = email ? email : db[index].email;
+  if (email) {
+    const isValidEmail = validator.isEmail(email);
+    if (!isValidEmail) {
+      return res.status(403).json({ error: "Invalid email" });
+    }
+  }
   if (password) {
+    const isValidPassword = validator.isStrongPassword(password);
+    if (!isValidPassword) {
+      return res.status(403).json({ error: "Invalid password" });
+    }
     const hash = bcrypt.hashSync(password, saltRounds);
     db[index].password = hash;
     saveToFile(db);
